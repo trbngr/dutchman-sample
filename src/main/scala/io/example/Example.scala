@@ -20,7 +20,7 @@ object Example extends App {
   implicit val executionContext = system.dispatcher
   implicit val dsl = AkkaHttpClient().bind(Endpoint.localhost)
 
-  val index: Idx = "people"
+  val index: Idx = "es_http4s_people"
   val tpe: Type = "person"
 
   /*=============== Index via Bulk ===============*/
