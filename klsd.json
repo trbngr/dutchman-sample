@@ -1,0 +1,19 @@
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "prefix": {
+            "first": "chris"
+          }
+        },
+        {
+          "prefix": {
+            "last": "chris"
+          }
+        }
+      ]
+    },
+    "size": 25
+  }
+}
