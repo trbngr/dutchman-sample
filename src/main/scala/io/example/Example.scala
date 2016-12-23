@@ -2,11 +2,10 @@ package io.example
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.linktargeting.elasticsearch.AkkaHttpClient
+import com.linktargeting.elasticsearch.{AkkaHttpClient, Endpoint}
 import com.linktargeting.elasticsearch.api._
 import com.linktargeting.elasticsearch.dsl._
-import com.linktargeting.elasticsearch.http.Endpoint
-import com.linktargeting.elasticsearch.http.circe._
+import com.linktargeting.elasticsearch.circe._
 
 import scala.concurrent.Future
 import scala.io.StdIn
