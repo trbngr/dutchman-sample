@@ -3,6 +3,7 @@ name := "scratch"
 version := "1.0"
 cancelable in Global := true
 connectInput in run := true
+outputStrategy := Some(StdoutOutput)
 fork in run := true
 scalaVersion := "2.12.1"
 libraryDependencies ++= Seq("core", "akka", "aws", "circe"

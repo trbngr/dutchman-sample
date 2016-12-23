@@ -12,6 +12,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.language.postfixOps
+import scala.util.Success
 
 object Example extends App {
 
@@ -35,12 +36,14 @@ object Example extends App {
 
   Bulk(bulkActions: _*) map { responses ⇒
     responses foreach { case BulkResponse(action, status, _) ⇒ println(s"$action: $status") }
-
-    /*=============== User Input Loop ===============*/
-    while (true) {
-      val input = StdIn.readLine("Enter a name to search: ").trim
-      if (input == "exit") exit else Await.ready(search(input), 1 second)
-    }
+  } onComplete {
+    case Success(_) ⇒
+      /*=============== User Input Loop ===============*/
+      while (true) {
+        val input = StdIn.readLine("Enter a name to search: ").trim
+        if (input == "exit") exit else Await.ready(search(input), 1 second)
+      }
+    case _          ⇒ println("somethings amiss")
   }
 
   private def search(input: String) = {
