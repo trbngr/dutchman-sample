@@ -61,11 +61,17 @@ object Example extends App {
     }
   }
 
-  def exit = DeleteIndex(index) flatMap { r ⇒
-    println(s"Deleted index: ${r.acknowledged}")
-    system.terminate() map { _ ⇒
+  def exit = {
+    val response = for {
+      r ← DeleteIndex(index)
+      _ ← system.terminate()
+    } yield r
+
+    response map { d ⇒
+      println(s"Deleted index: ${d.acknowledged}")
       println(s"actor system terminated")
       sys.exit(0)
     }
+
   }
 }
