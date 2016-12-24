@@ -3,12 +3,13 @@
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%X{akkaTimestamp} %-5level %logger{36} %X{akkaSource} - %msg%n</pattern>
+            <pattern>%-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!--<logger name="akka" level="WARN"/>-->
-    <!--<logger name="com.typesafe" level="INFO"/>-->
+    <logger name="ch.qos" level="WARN" />
+    <logger name="akka" level="WARN"/>
+    <logger name="com.typesafe" level="WARN"/>
 
     <root level="WARN">
         <appender-ref ref="STDOUT"/>

@@ -37,7 +37,7 @@ object Example extends App {
 
   def search: Future[Nothing] = {
     val input = StdIn.readLine("Enter a name to search: ").trim
-    if (input != "exit") {
+    if (input == "exit") exit else {
       /*=============== Bool Query Construction ===============*/
       val query = Bool(
         Should(Prefix("first", input), Prefix("last", input))
@@ -58,7 +58,7 @@ object Example extends App {
           println("-----")
           search
       }
-    } else exit
+    }
   }
 
   def exit = DeleteIndex(index) flatMap { r ⇒
