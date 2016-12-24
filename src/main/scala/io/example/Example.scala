@@ -2,10 +2,10 @@ package io.example
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.linktargeting.elasticsearch.{AkkaHttpClient, Endpoint}
-import com.linktargeting.elasticsearch.api._
-import com.linktargeting.elasticsearch.dsl._
-import com.linktargeting.elasticsearch.circe._
+import dutchman.{AkkaHttpClient, Endpoint}
+import dutchman.api._
+import dutchman.dsl._
+import dutchman.circe._
 
 import scala.concurrent.Future
 import scala.io.StdIn
@@ -20,7 +20,7 @@ object Example extends App {
   implicit val executionContext = system.dispatcher
   implicit val dsl = AkkaHttpClient().bind(Endpoint.localhost)
 
-  val index: Idx = "es_http4s_people"
+  val index: Idx = "dutchman_sample_index"
   val tpe: Type = "person"
 
   /*=============== Index via Bulk ===============*/

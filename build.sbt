@@ -1,4 +1,4 @@
-name := "scratch"
+name := "dutchman-sample"
 
 version := "1.0"
 cancelable in Global := true
@@ -7,9 +7,9 @@ outputStrategy := Some(StdoutOutput)
 fork in run := true
 scalaVersion := "2.12.1"
 
-resolvers += "LinkTargeting Repo" at "https://s3-us-west-2.amazonaws.com/repo.linktargeting.io/release"
+resolvers += "caliberweb repo" at "https://s3-us-west-2.amazonaws.com/repo.caliberweb.com/release"
 
 libraryDependencies ++= Seq("core", "akka", "aws", "circe"
-) map (x ⇒ "com.linktargeting.elasticsearch" %% s"elasticsearch-$x" % "0.5.64")
+) map (x ⇒ "com.caliberweb" %% s"dutchman-$x" % "0.5.1")
 
 libraryDependencies ++= Seq("ch.qos.logback" % "logback-classic" % "1.1.7")

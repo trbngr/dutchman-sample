@@ -1,6 +1,8 @@
-# Elasticsearch HTTP for Scala Sample
+# Dutchman Sample
 
-example usage of https://github.com/trbngr/elasticsearch-http4s
+example usage of the Elasticsearch Http client for Scala.
+
+https://github.com/trbngr/dutchman
 
 ## Usage
 ```

@@ -1,12 +1,12 @@
 package io.example
 
-import com.linktargeting.elasticsearch.api.Document
-import com.linktargeting.elasticsearch.api.translation.ESDocument
+import dutchman.api._
 import io.circe.generic.semiauto._
 
 import scala.language.postfixOps
 
 object model {
+
   case class Person(id: Int, first: String, last: String)
 
   implicit val personEnc = deriveEncoder[Person]
