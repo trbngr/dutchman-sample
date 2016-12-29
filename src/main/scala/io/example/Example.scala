@@ -35,29 +35,46 @@ object Example extends App {
     case e: Throwable ⇒ println(s"somethings amiss: ${e.getMessage}")
   }
 
+  def doSearch(input: String, page: Int = 0, totalFetched: Int = 0): Future[Nothing] = {
+
+    /*=============== Bool Query Construction ===============*/
+    //case class
+    val firstName = Prefix("first", input)
+    //or interpolation
+    val lastName = prefix"last:$input"
+
+    val query = Bool(
+      Should(firstName, lastName)
+    )
+
+    /*=============== Execute the Search API ===============*/
+    val options = SearchOptions(size = Some(25), from = Some(page * 25))
+
+    Search(index, tpe, query).withOptions(options) flatMap {
+      case SearchResponse(_, total, documents) ⇒
+        println("-----")
+        val count = totalFetched + documents.size
+        println(s"Found $total people, ${documents.size} documents returned, $count fetched so far.")
+
+        documents.map(document ⇒ document.source.as[Person] → document.score) collect {
+          case (Right(person), score) ⇒ person -> score
+        } foreach println
+
+        println("-----")
+        if (total == count) {
+          search
+        } else {
+          val nextPage = page + 1
+          doSearch(input, nextPage, count)
+        }
+    }
+
+  }
+
   def search: Future[Nothing] = {
     val input = StdIn.readLine("Enter a name to search: ").trim
     if (input == "exit") exit else {
-      /*=============== Bool Query Construction ===============*/
-      val query = Bool(
-        Should(Prefix("first", input), Prefix("last", input))
-      )
-
-      /*=============== Execute the Search API ===============*/
-      val options = SearchOptions(size = Some(25))
-
-      Search(index, tpe, query).withOptions(options) flatMap {
-        case SearchResponse(_, total, documents) ⇒
-          println("-----")
-          println(s"Found $total people, ${documents.size} documents returned")
-
-          documents.map(document ⇒ document.source.as[Person] → document.score) collect {
-            case (Right(person), score) ⇒ person -> score
-          } foreach println
-
-          println("-----")
-          search
-      }
+      doSearch(input)
     }
   }
 
