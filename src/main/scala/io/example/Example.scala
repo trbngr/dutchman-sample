@@ -1,11 +1,11 @@
 package io.example
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Terminated}
 import akka.stream.ActorMaterializer
-import dutchman.{AkkaHttpClient, Endpoint}
+import dutchman.AkkaHttpClient
 import dutchman.api._
-import dutchman.dsl._
 import dutchman.circe._
+import dutchman.http._
 
 import scala.concurrent.Future
 import scala.io.StdIn
@@ -18,7 +18,7 @@ object Example extends App {
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
-  implicit val dsl = AkkaHttpClient().bind(Endpoint.localhost)
+  implicit val es = AkkaHttpClient().bind(Endpoint.localhost)
 
   val index: Idx = "dutchman_sample_index"
   val tpe: Type = "person"
@@ -28,7 +28,7 @@ object Example extends App {
     Bulk(Index(index, tpe, Person(i, names.first, names.last)))
   }
 
-  Bulk(bulkActions: _*) flatMap { responses ⇒
+  es.bulk(bulkActions: _*) flatMap { responses ⇒
     println(s"indexed ${responses.size} people")
     search
   } recover {
@@ -40,7 +40,7 @@ object Example extends App {
     /*=============== Bool Query Construction ===============*/
     //case class
     val firstName = Prefix("first", input)
-    //or interpolation
+    //or use the query interpolation
     val lastName = prefix"last:$input"
 
     val query = Bool(
@@ -50,7 +50,7 @@ object Example extends App {
     /*=============== Execute the Search API ===============*/
     val options = SearchOptions(size = Some(25), from = Some(page * 25))
 
-    Search(index, tpe, query).withOptions(options) flatMap {
+    es.search(index, tpe, query, Some(options)) flatMap {
       case SearchResponse(_, total, documents) ⇒
         println("-----")
         val count = totalFetched + documents.size
@@ -60,12 +60,17 @@ object Example extends App {
           case (Right(person), score) ⇒ person -> score
         } foreach println
 
-        println("-----")
         if (total == count) {
+          println("-----")
           search
         } else {
-          val nextPage = page + 1
-          doSearch(input, nextPage, count)
+          val answer = StdIn.readLine("fetch next page? [Y/n]: ")
+          if (answer.toLowerCase() == "n") {
+            search
+          } else {
+            val nextPage = page + 1
+            doSearch(input, nextPage, count)
+          }
         }
     }
 
@@ -80,14 +85,15 @@ object Example extends App {
 
   def exit = {
     val response = for {
-      r ← DeleteIndex(index)
-      _ ← system.terminate()
-    } yield r
+      r ← es.deleteIndex(index)
+      t ← system.terminate()
+    } yield (r, t)
 
-    response map { d ⇒
-      println(s"Deleted index: ${d.acknowledged}")
-      println(s"actor system terminated")
-      sys.exit(0)
+    response map {
+      case (d: DeleteIndexResponse, t: Terminated) ⇒
+        println(s"Deleted index: ${d.acknowledged}")
+        println(s"actor system terminated: ${t.actor}")
+        sys.exit(0)
     }
 
   }
