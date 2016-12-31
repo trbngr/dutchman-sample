@@ -25,7 +25,7 @@ object Example extends App {
 
   /*=============== Index via Bulk ===============*/
   val bulkActions = (1 to 1000).map { i ⇒
-    Bulk(Index(index, tpe, Person(i, names.first, names.last)))
+    BulkAction(Index(index, tpe, Person(i, names.first, names.last)))
   }
 
   es.bulk(bulkActions: _*) flatMap { responses ⇒
@@ -73,7 +73,6 @@ object Example extends App {
           }
         }
     }
-
   }
 
   def search: Future[Nothing] = {
