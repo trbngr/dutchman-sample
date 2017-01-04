@@ -3,9 +3,11 @@ package io.example
 import akka.actor.{ActorSystem, Terminated}
 import akka.stream.ActorMaterializer
 import dutchman.AkkaHttpClient
-import dutchman.api._
+import dutchman.dsl._
+import dutchman.ops._
 import dutchman.circe._
 import dutchman.http._
+import io.circe.Json
 
 import scala.concurrent.Future
 import scala.io.StdIn
@@ -18,21 +20,27 @@ object Example extends App {
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
-  implicit val es = AkkaHttpClient().bind(Endpoint.localhost)
+  implicit val elasticsearch = AkkaHttpClient().bind(Endpoint.localhost)
 
   val index: Idx = "dutchman_sample_index"
   val tpe: Type = "person"
 
   /*=============== Index via Bulk ===============*/
-  val bulkActions = (1 to 1000).map { i ⇒
-    BulkAction(Index(index, tpe, Person(i, names.first, names.last)))
+  val bulkActions = (1 to 100).map { i ⇒
+    val document = Person(i, names.first, names.last)
+    BulkAction(Index(index, tpe, document, None))
   }
 
-  es.bulk(bulkActions: _*) flatMap { responses ⇒
+  val indexAndRefresh = for {
+    r ← bulk(bulkActions: _*)
+    _ ← refresh(index)
+  } yield r
+
+  elasticsearch(indexAndRefresh) flatMap { responses ⇒
     println(s"indexed ${responses.size} people")
-    search
+    askForName
   } recover {
-    case e: Throwable ⇒ println(s"somethings amiss: ${e.getMessage}")
+    case e: Throwable ⇒ println(s"something's amiss: ${e.getMessage}")
   }
 
   def doSearch(input: String, page: Int = 0, totalFetched: Int = 0): Future[Nothing] = {
@@ -50,7 +58,7 @@ object Example extends App {
     /*=============== Execute the Search API ===============*/
     val options = SearchOptions(size = Some(25), from = Some(page * 25))
 
-    es.search(index, tpe, query, Some(options)) flatMap {
+    elasticsearch(search[Json](index, tpe, query, Some(options))) flatMap {
       case SearchResponse(_, total, documents) ⇒
         println("-----")
         val count = totalFetched + documents.size
@@ -62,11 +70,11 @@ object Example extends App {
 
         if (total == count) {
           println("-----")
-          search
+          askForName
         } else {
           val answer = StdIn.readLine("fetch next page? [Y/n]: ")
           if (answer.toLowerCase() == "n") {
-            search
+            askForName
           } else {
             val nextPage = page + 1
             doSearch(input, nextPage, count)
@@ -75,7 +83,7 @@ object Example extends App {
     }
   }
 
-  def search: Future[Nothing] = {
+  def askForName: Future[Nothing] = {
     val input = StdIn.readLine("Enter a name to search: ").trim
     if (input == "exit") exit else {
       doSearch(input)
@@ -84,7 +92,7 @@ object Example extends App {
 
   def exit = {
     val response = for {
-      r ← es.deleteIndex(index)
+      r ← elasticsearch(deleteIndex(index))
       t ← system.terminate()
     } yield (r, t)
 
