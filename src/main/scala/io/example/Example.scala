@@ -90,7 +90,7 @@ object Example extends App {
     }
   }
 
-  def exit = {
+  def exit: Future[Nothing] = {
     val response = for {
       r ← elasticsearch(deleteIndex(index))
       t ← system.terminate()

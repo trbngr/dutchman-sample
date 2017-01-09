@@ -13,4 +13,4 @@ libraryDependencies += "com.typesafe.akka" % "akka-slf4j_2.12" % "2.4.16"
 libraryDependencies ++= Seq("ch.qos.logback" % "logback-classic" % "1.1.7")
 
 libraryDependencies ++= Seq("core", "akka", "aws", "circe"
-) map (x ⇒ "com.caliberweb" %% s"dutchman-$x" % "1.0.9")
+) map (x ⇒ "com.caliberweb" %% s"dutchman-$x" % "0.1.22")
