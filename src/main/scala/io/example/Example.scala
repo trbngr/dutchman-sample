@@ -26,7 +26,7 @@ object Example extends App with EmbeddedServer {
   val tpe: Type = "person"
 
   /*=============== Index via Bulk ===============*/
-  val bulkActions = (1 to 100).map { i ⇒
+  val bulkActions = (1 to 1000).map { i ⇒
     val document = Person(i, names.first, names.last)
     BulkAction(Index(index, tpe, document, None))
   }
@@ -36,13 +36,39 @@ object Example extends App with EmbeddedServer {
     _ ← refresh(index)
   } yield r
 
-  elasticsearch(indexAndRefresh) flatMap { responses ⇒
-    println(s"indexed ${responses.size} people")
-    println(s"running at endpoint: $endpoint")
-    println(s"data directory: $dataDirectory")
-    askForName
-  } recover {
-    case e: Throwable ⇒ println(s"something's amiss: ${e.getMessage}")
+  elasticsearch(indexAndRefresh) map {
+    case Left(e) ⇒
+      println(s"something's amiss: ${e.reason}")
+      exit
+
+    case Right(responses) ⇒
+      println(s"indexed ${responses.size} people")
+      println(s"running at endpoint: $endpoint")
+      println(s"data directory: $dataDirectory")
+      askForName
+  }
+
+  def askForName: Future[Nothing] = {
+    val input = StdIn.readLine("Enter a name to search or 'exit' to stop: ").trim
+    if (input == "exit") exit else {
+      doSearch(input)
+    }
+  }
+
+  def exit: Future[Nothing] = {
+    val response = for {
+      r ← elasticsearch(deleteIndex(index))
+      _ ← shutDownServer()
+      t ← system.terminate()
+    } yield (r, t)
+
+    response map {
+      case (result: Result[DeleteIndexResponse], t: Terminated) ⇒
+        println(s"Deleted index: $result")
+        println(s"actor system terminated: ${t.actor}")
+        sys.exit(0)
+    }
+
   }
 
   def doSearch(input: String, page: Int = 0, totalFetched: Int = 0): Future[Nothing] = {
@@ -60,8 +86,17 @@ object Example extends App with EmbeddedServer {
     /*=============== Execute the Search API ===============*/
     val options = SearchOptions(size = Some(25), from = Some(page * 25))
 
-    elasticsearch(search[Json](index, tpe, query, Some(options))) flatMap {
-      case SearchResponse(_, total, documents) ⇒
+    val program = for {
+      r ← search[Json](index, tpe, query, Some(options))
+    } yield r
+
+    elasticsearch(program) flatMap {
+      case Left(error)         ⇒
+        println(s"Error: $error")
+        exit
+      case Right(response) ⇒
+        val documents = response.documents
+        val total = response.total
         println("-----")
         val count = totalFetched + documents.size
         println(s"Found $total people, ${documents.size} documents returned, $count fetched so far.")
@@ -83,28 +118,5 @@ object Example extends App with EmbeddedServer {
           }
         }
     }
-  }
-
-  def askForName: Future[Nothing] = {
-    val input = StdIn.readLine("Enter a name to search or 'exit' to stop: ").trim
-    if (input == "exit") exit else {
-      doSearch(input)
-    }
-  }
-
-  def exit: Future[Nothing] = {
-    val response = for {
-      r ← elasticsearch(deleteIndex(index))
-      _ ← shutDownServer()
-      t ← system.terminate()
-    } yield (r, t)
-
-    response map {
-      case (d: DeleteIndexResponse, t: Terminated) ⇒
-        println(s"Deleted index: ${d.acknowledged}")
-        println(s"actor system terminated: ${t.actor}")
-        sys.exit(0)
-    }
-
   }
 }

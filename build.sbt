@@ -14,4 +14,4 @@ libraryDependencies ++= Seq("ch.qos.logback" % "logback-classic" % "1.1.7")
 libraryDependencies += "org.elasticsearch" % "elasticsearch" % "2.4.3"
 
 libraryDependencies ++= Seq("core", "akka", "aws", "circe"
-) map (x ⇒ "com.caliberweb" %% s"dutchman-$x" % "0.1.25")
+) map (x ⇒ "com.caliberweb" %% s"dutchman-$x" % "0.2.2")
