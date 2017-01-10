@@ -3,24 +3,24 @@ package io.example
 import akka.actor.{ActorSystem, Terminated}
 import akka.stream.ActorMaterializer
 import dutchman.AkkaHttpClient
-import dutchman.dsl._
-import dutchman.ops._
 import dutchman.circe._
-import dutchman.http._
+import dutchman.dsl._
+import dutchman._
+import dutchman.ops._
 import io.circe.Json
 
 import scala.concurrent.Future
 import scala.io.StdIn
 import scala.language.postfixOps
 
-object Example extends App {
+object Example extends App with EmbeddedServer {
 
   import model.{Person, _}
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
-  implicit val elasticsearch = AkkaHttpClient().bind(Endpoint.localhost)
+  implicit val elasticsearch = AkkaHttpClient().bind(endpoint)
 
   val index: Idx = "dutchman_sample_index"
   val tpe: Type = "person"
@@ -38,6 +38,8 @@ object Example extends App {
 
   elasticsearch(indexAndRefresh) flatMap { responses ⇒
     println(s"indexed ${responses.size} people")
+    println(s"running at endpoint: $endpoint")
+    println(s"data directory: $dataDirectory")
     askForName
   } recover {
     case e: Throwable ⇒ println(s"something's amiss: ${e.getMessage}")
@@ -84,7 +86,7 @@ object Example extends App {
   }
 
   def askForName: Future[Nothing] = {
-    val input = StdIn.readLine("Enter a name to search: ").trim
+    val input = StdIn.readLine("Enter a name to search or 'exit' to stop: ").trim
     if (input == "exit") exit else {
       doSearch(input)
     }
@@ -93,6 +95,7 @@ object Example extends App {
   def exit: Future[Nothing] = {
     val response = for {
       r ← elasticsearch(deleteIndex(index))
+      _ ← shutDownServer()
       t ← system.terminate()
     } yield (r, t)
 
